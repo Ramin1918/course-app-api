@@ -13,3 +13,7 @@ education/*/*/*/__pycache__/
 .env/
 .venv/
 venv/
+
+
+
+this is just comment
