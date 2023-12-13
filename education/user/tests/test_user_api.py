@@ -66,7 +66,6 @@ class PublicUserApiTests(TestCase):
         ).exists()
         self.assertFalse(user_exists)
 
-
     def test_create_token_for_user(self):
         """Test generates token for valid credentials."""
         user_details = {
@@ -130,7 +129,6 @@ class PrivateUserApiTests(TestCase):
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
 
-
     def test_retrieve_profile_success(self):
         """Test retrieving profile for logged in user."""
         res = self.client.get(ME_URL)
@@ -140,12 +138,10 @@ class PrivateUserApiTests(TestCase):
             'email': self.user.email,
         })
 
-
     def test_post_me_not_allowed(self):
         """Test POST is not allowed for the me endpoint."""
         res = self.client.post(ME_URL, {})
         self.assertEqual(res.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
-
 
     def test_update_user_profile(self):
         """Test updating the user profile for the authenticated user."""
