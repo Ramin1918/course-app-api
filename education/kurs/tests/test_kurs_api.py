@@ -17,9 +17,11 @@ from kurs.serializers import KursSerializer, KursDetailSerializer
 
 KURSES_URl = reverse('kurs:kurs-list')
 
+
 def detail_url(kurs_id):
     """Create and return a kurs detail URL."""
     return reverse('kurs:kurs-detail', args=[kurs_id])
+
 
 def create_kurs(user, **params):
     """Create and return a sample kurs."""
@@ -35,6 +37,9 @@ def create_kurs(user, **params):
     kurs = Kurs.objects.create(user=user, **defaults)
     return kurs
 
+def create_user(**params):
+    """Create and return a new user."""
+    return get_user_model().objects.create_user(**params)
 
 class PublicKursAPITests(TestCase):
     """Test unauthenticated API requests."""
@@ -54,10 +59,7 @@ class PrivateKursApiTests(TestCase):
 
     def setUp(self):
         self.client = APIClient()
-        self.user = get_user_model().objects.create_user(
-            'user@example.com',
-            'testpass123',
-        )
+        self.user = create_user(email='user@example.com', password='test123')
         self.client.force_authenticate(self.user)
 
     def test_retrieve_kurses(self):
@@ -74,10 +76,7 @@ class PrivateKursApiTests(TestCase):
 
     def test_kurs_list_limited_to_user(self):
         """Test list of kurses is limited to authenticated user."""
-        other_user = get_user_model().objects.create_user(
-            'other@example.com',
-            'password123',
-        )
+        other_user = create_user(email='other@example.com', password='test123')
         create_kurs(user=other_user)
         create_kurs(user=self.user)
 
@@ -112,3 +111,80 @@ class PrivateKursApiTests(TestCase):
         for k, v in payload.items():
             self.assertEqual(getattr(kurs, k), v)
         self.assertEqual(kurs.user, self.user)
+
+    def test_partial_update(self):
+        """Test partial update of a kurs."""
+        original_link = 'https://example.com/kurs.pdf'
+        kurs = create_kurs(
+            user=self.user,
+            title='Sample kurs title',
+            link=original_link,
+        )
+
+        payload = {'title': 'New kurs title'}
+        url = detail_url(kurs.id)
+        res = self.client.patch(url, payload)
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        kurs.refresh_from_db()
+        self.assertEqual(kurs.title, payload['title'])
+        self.assertEqual(kurs.link, original_link)
+        self.assertEqual(kurs.user, self.user)
+
+    def test_full_update(self):
+        """Test full update of kurs."""
+        kurs = create_kurs(
+            user=self.user,
+            title='Sample kurs title',
+            link='https://exmaple.com/kurs.pdf',
+            description='Sample kurs description.',
+        )
+
+        payload = {
+            'title': 'New recipe title',
+            'link': 'https://example.com/new-recipe.pdf',
+            'description': 'New recipe description',
+            'author': 'Sample author name',
+            'price': Decimal('2.50'),
+        }
+        url = detail_url(kurs.id)
+        res = self.client.put(url, payload)
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        kurs.refresh_from_db()
+        for k, v in payload.items():
+            self.assertEqual(getattr(kurs, k), v)
+        self.assertEqual(kurs.user, self.user)
+
+    def test_update_user_returns_error(self):
+        """Test changing the kurs user results in an error."""
+        new_user = create_user(email='user2@example.com', password='test123')
+        kurs = create_kurs(user=self.user)
+
+        payload = {'user': new_user.id}
+        url = detail_url(kurs.id)
+        self.client.patch(url, payload)
+
+        kurs.refresh_from_db()
+        self.assertEqual(kurs.user, self.user)
+
+    def test_delete_kurs(self):
+        """Test deleting a kurs successful."""
+        kurs = create_kurs(user=self.user)
+
+        url = detail_url(kurs.id)
+        res = self.client.delete(url)
+
+        self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(Kurs.objects.filter(id=kurs.id).exists())
+
+    def test_kurs_other_users_kurs_error(self):
+        """Test trying to delete another users kurs gives error."""
+        new_user = create_user(email='user2@example.com', password='test123')
+        kurs = create_kurs(user=new_user)
+
+        url = detail_url(kurs.id)
+        res = self.client.delete(url)
+
+        self.assertEqual(res.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertTrue(Kurs.objects.filter(id=kurs.id).exists())
