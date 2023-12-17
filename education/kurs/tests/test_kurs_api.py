@@ -37,9 +37,11 @@ def create_kurs(user, **params):
     kurs = Kurs.objects.create(user=user, **defaults)
     return kurs
 
+
 def create_user(**params):
     """Create and return a new user."""
     return get_user_model().objects.create_user(**params)
+
 
 class PublicKursAPITests(TestCase):
     """Test unauthenticated API requests."""
