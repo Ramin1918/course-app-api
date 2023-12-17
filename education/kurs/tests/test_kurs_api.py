@@ -12,17 +12,20 @@ from rest_framework.test import APIClient
 
 from course.models import Kurs
 
-from kurs.serializers import KursSerializer
+from kurs.serializers import KursSerializer, KursDetailSerializer
 
 
 KURSES_URl = reverse('kurs:kurs-list')
 
+def detail_url(kurs_id):
+    """Create and return a kurs detail URL."""
+    return reverse('kurs:kurs-detail', args=[kurs_id])
 
 def create_kurs(user, **params):
     """Create and return a sample kurs."""
     defaults = {
+        'author': 'Sample author name',
         'title': 'Sample kurs title',
-        'time_minutes': 22,
         'price': Decimal('5.25'),
         'description': 'Sample description',
         'link': 'http://example.com/kurs.pdf',
@@ -58,7 +61,7 @@ class PrivateKursApiTests(TestCase):
         self.client.force_authenticate(self.user)
 
     def test_retrieve_kurses(self):
-        """Test retrieving a list of recipes."""
+        """Test retrieving a list of kurses."""
         create_kurs(user=self.user)
         create_kurs(user=self.user)
 
@@ -84,3 +87,28 @@ class PrivateKursApiTests(TestCase):
         serializer = KursSerializer(kurses, many=True)
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(res.data, serializer.data)
+
+    def test_get_kurs_detail(self):
+        """Test get kurs detail."""
+        kurs = create_kurs(user=self.user)
+
+        url = detail_url(kurs.id)
+        res = self.client.get(url)
+
+        serializer = KursDetailSerializer(kurs)
+        self.assertEqual(res.data, serializer.data)
+
+    def test_create_kurs(self):
+        """Test creating a kurs."""
+        payload = {
+            'title': 'Sample kurs',
+            'author': 'Sample author',
+            'price': Decimal('5.99'),
+        }
+        res = self.client.post(KURSES_URl, payload)
+
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        kurs = Kurs.objects.get(id=res.data['id'])
+        for k, v in payload.items():
+            self.assertEqual(getattr(kurs, k), v)
+        self.assertEqual(kurs.user, self.user)

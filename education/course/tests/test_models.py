@@ -1,6 +1,7 @@
 """
 Tests for models.
 """
+from unittest.mock import patch
 from decimal import Decimal
 from django.test import TestCase
 from django.contrib.auth import get_user_model
@@ -49,9 +50,14 @@ class ModelTests(TestCase):
         self.assertTrue(user.is_superuser)
         self.assertTrue(user.is_staff)
 
-    def test_create_course(self):
-        """Test creating a course is successful."""
+    def test_create_kurs(self):
+        """Test creating a kurs is successful."""
+        user = get_user_model().objects.create_user(
+            'test@example.com',
+            'testpass123',
+        )
         kurs = models.Kurs.objects.create(
+            user=user,
             author='Sample author name',
             title='Sample course name',
             price=Decimal('5.50'),
