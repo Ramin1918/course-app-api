@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <div>
+        <hr>
+        {% for kurs in kurses %}
+            <h2>{{ kurs.title }}</h2>
+            <p>{{ kurs.description }}</p>
+
+            <!-- Loop through materials for the current kurs -->
+            {% for material in kurs.materials.all %}
+                <video controls width="300">
+                    <source src="{{ material.video.url }}" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            {% endfor %}
+
+            <!-- Add more fields as needed -->
+        {% endfor %}
+    </div>
+</body>
+</html>

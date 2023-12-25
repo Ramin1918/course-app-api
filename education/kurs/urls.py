@@ -13,6 +13,7 @@ from kurs import views
 
 router = DefaultRouter()
 router.register('kurses', views.KursViewSet)
+router.register('materials', views.MaterialViewSet)
 
 app_name = 'kurs'
 

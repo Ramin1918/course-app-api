@@ -10,7 +10,7 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from course.models import Kurs
+from course.models import Kurs, Material
 
 from kurs.serializers import KursSerializer, KursDetailSerializer
 
@@ -190,3 +190,93 @@ class PrivateKursApiTests(TestCase):
 
         self.assertEqual(res.status_code, status.HTTP_404_NOT_FOUND)
         self.assertTrue(Kurs.objects.filter(id=kurs.id).exists())
+
+    # def test_create_kurs_with_new_materials(self):
+    #     """Test creating a kurs with new materials."""
+    #     payload = {
+    #         'title': 'Programming',
+    #         'author': 'sample author name',
+    #         'price': Decimal('2.50'),
+    #         'materials': [{'name': 'Python', 'video': 'video_url'}, {'name': 'Java', 'video': 'video_url'}],
+
+    #     }
+    #     res = self.client.post(KURSES_URl, payload, format='json')
+
+    #     self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+    #     kurses = Kurs.objects.filter(user=self.user)
+    #     self.assertEqual(kurses.count(), 1)
+    #     kurs = kurses[0]
+    #     self.assertEqual(kurs.materials.count(), 2)
+    #     for material in payload['materials']:
+    #         exists = kurs.materials.filter(
+    #             name=material['name'],
+    #             video=material['video'],
+    #             user=self.user,
+    #         ).exists()
+    #         self.assertTrue(exists)
+
+    # def test_create_kurs_with_existing_materials(self):
+    #     """Test creating a kurs with existing material."""
+    #     material_django = Material.objects.create(user=self.user, name='Djangoview')
+    #     payload = {
+    #         'title': 'Djangomodels',
+    #         'author': 'sample author name',
+    #         'price': Decimal('4.50'),
+    #         'materials': [{'name': 'Python', 'video': 'video_url'}, {'name': 'Java', 'video': 'video_url'}],
+
+    #     }
+    #     res = self.client.post(KURSES_URl, payload, format='json')
+
+    #     self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+    #     kurses = Kurs.objects.filter(user=self.user)
+    #     self.assertEqual(kurses.count(), 1)
+    #     kurs = kurses[0]
+    #     self.assertEqual(kurs.materials.count(), 2)
+    #     self.assertIn(material_django, kurs.materials.all())
+    #     for material in payload['materials']:
+    #         exists = kurs.materials.filter(
+    #             name=material['name'],
+    #             video=material['video'],
+    #             user=self.user,
+    #         ).exists()
+    #         self.assertTrue(exists)
+
+    def test_create_material_on_update(self):
+        """Test create material when updating a kurs."""
+        kurs = create_kurs(user=self.user)
+
+        payload = {'materials': [{'name': 'Lunch'}]}
+        url = detail_url(kurs.id)
+        res = self.client.patch(url, payload, format='json')
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        new_material = Material.objects.get(user=self.user, name='Lunch')
+        self.assertIn(new_material, kurs.materials.all())
+
+    def test_update_kurs_assign_material(self):
+        """Test assigning an existing material when updating a kurs."""
+        material_django = Material.objects.create(user=self.user, name='Django')
+        kurs = create_kurs(user=self.user)
+        kurs.materials.add(material_django)
+
+        material_python = Material.objects.create(user=self.user, name='Python')
+        payload = {'materials': [{'name': 'Python'}]}
+        url = detail_url(kurs.id)
+        res = self.client.patch(url, payload, format='json')
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertIn(material_python, kurs.materials.all())
+        self.assertNotIn(material_django, kurs.materials.all())
+
+    def test_clear_kurs_materials(self):
+        """Test clearing a kurses materials."""
+        material = Material.objects.create(user=self.user, name='Java')
+        kurs = create_kurs(user=self.user)
+        kurs.materials.add(material)
+
+        payload = {'materials': []}
+        url = detail_url(kurs.id)
+        res = self.client.patch(url, payload, format='json')
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(kurs.materials.count(), 0)

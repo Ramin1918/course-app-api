@@ -5,6 +5,12 @@ from decimal import Decimal
 from django.test import TestCase
 from django.contrib.auth import get_user_model
 from course import models
+from django.core.files.uploadedfile import SimpleUploadedFile
+
+
+def create_user(email='user@example.com', password='testpass123'):
+    """Create a return a new user."""
+    return get_user_model().objects.create_user(email, password)
 
 
 class ModelTests(TestCase):
@@ -64,3 +70,24 @@ class ModelTests(TestCase):
         )
 
         self.assertEqual(str(kurs), kurs.title)
+
+    # def test_create_material(self):
+    #     """Test creating a material is successful."""
+    #     user = create_user()
+    #     material = models.Material.objects.create(user=user, name='Material1')
+
+    #     self.assertEqual(str(material), material.name)
+    def test_create_material(self):
+        """Test creating a material is successful."""
+        user = create_user()
+
+        # Create a sample video file for testing
+        video_content = b"Sample video content"
+        video = SimpleUploadedFile("video.mp4", video_content, content_type="video/mp4")
+        material = models.Material.objects.create(user=user, name='Material1', video=video)
+
+        self.assertEqual(str(material), material.name)
+        self.assertIsNotNone(material.video)
+        self.assertTrue(material.video.name.startswith("course_videos/"))
+        with material.video.open() as file:
+            self.assertEqual(file.read(), video_content)
